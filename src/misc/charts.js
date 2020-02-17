@@ -1,5 +1,5 @@
 import React from "react";
-import { charts } from "./style";
+import { charts } from "../style";
 
 import { VerticalBarSeries, XAxis, XYPlot, YAxis } from "react-vis";
 
