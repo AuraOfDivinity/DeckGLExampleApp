@@ -6,6 +6,9 @@ import Grid from "@material-ui/core/Grid";
 import FormControl from "@material-ui/core/FormControl";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
+import DeckGL from "deck.gl";
+import { PathLayer } from "@deck.gl/layers";
+import DeckGLOverlay from "./components/DeckGLOverLay";
 
 // Easing function
 import { easeCubic } from "d3-ease";
@@ -87,6 +90,12 @@ export default class App extends Component {
         return res.json();
       })
       .then(data => {
+        const paths = [];
+        const timestamps = [];
+        const layers = [];
+
+        // Focus animation
+
         const focusLongitude = data.features[0].geometry.coordinates[0];
         const focusLatitude = data.features[0].geometry.coordinates[1];
 
@@ -99,7 +108,53 @@ export default class App extends Component {
           transitionInterpolator: new FlyToInterpolator(),
           transitionEasing: easeCubic
         };
-        this.setState({ viewport });
+
+        // Setting up the data object required for TripsLayer
+
+        data.features.forEach((item, index) => {
+          paths.push(item.geometry.coordinates);
+          timestamps.push(100 * index + 2500);
+        });
+
+        let layerData = [{ path: paths, name: "Track", color: [255, 0, 0] }];
+
+        // let layers = [
+        //   new TripsLayer({
+        //     id: "trips",
+        //     data: layerData,
+        //     getPath: d => d.path,
+        //     getTimestamps: d => d.timestamps,
+        //     getColor: d =>
+        //       d.vendor === 0 ? theme.trailColor0 : theme.trailColor1,
+        //     opacity: 0.3,
+        //     widthMinPixels: 2,
+        //     rounded: true,
+        //     trailLength: 180,
+        //     currentTime: 2700,
+        //     shadowEnabled: false
+        //   })
+        // ];
+
+        // const pathLayer = new PathLayer({
+        //   id: "path-layer",
+        //   layerData,
+        //   pickable: true,
+        //   widthScale: 20,
+        //   widthMinPixels: 2,
+        //   getPath: d => d.path,
+        //   getColor: d => colorToRGBArray(d.color),
+        //   getWidth: d => 5,
+        //   onHover: ({ object, x, y }) => {
+        //     const tooltip = object.name;
+        //     /* Update tooltip
+        //          http://deck.gl/#/documentation/developer-guide/adding-interactivity?section=example-display-a-tooltip-for-hovered-object
+        //       */
+        //   }
+        // });
+
+        // layers.push(pathLayer);
+
+        this.setState({ viewport, layerData: layerData });
       })
       .catch(err => {
         console.log(err);
@@ -118,7 +173,7 @@ export default class App extends Component {
   };
 
   render() {
-    const recentTracks = { ...this.props };
+    const { viewport, layers } = this.state;
     return (
       <div>
         <Grid container>
@@ -128,13 +183,18 @@ export default class App extends Component {
               currentStyle={this.state.style}
             />
             <MapGL
-              {...this.state.viewport}
+              {...viewport}
               mapStyle={this.state.style}
               onViewportChange={viewport => this._onViewportChange(viewport)}
               mapboxApiAccessToken={
                 "pk.eyJ1IjoiYXVyYW9mZGl2aW5pdHkiLCJhIjoiY2s2bng4bGIzMTI4NTNscDZodGE4YzZvcyJ9.EUzx63KUHzjzzm1PJFfRPg"
               }
-            />
+            >
+              <DeckGLOverlay
+                viewport={this.state.viewport}
+                layerData={this.state.layerData}
+              ></DeckGLOverlay>
+            </MapGL>
           </Grid>
           <Grid item lg={3} sm={3} md={3}>
             <div style={{ margin: "20px" }}>
