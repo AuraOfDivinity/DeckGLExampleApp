@@ -9,3 +9,6 @@ npm install
 npm start
 ```
 
+### Updates
+21/02/19 - Initial app is implemented. Fetches some 20 rows of tracks from envirocar API and displays those tracks on the map upon selection
+
