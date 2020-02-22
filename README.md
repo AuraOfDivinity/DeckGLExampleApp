@@ -13,3 +13,5 @@ npm start
 ### Updates
 21/02/19 - Initial app is implemented. Fetches some 20 rows of tracks from envirocar API and displays those tracks on the map upon selection
 
+22/02/19 - Added query parameters to fetch required data
+
