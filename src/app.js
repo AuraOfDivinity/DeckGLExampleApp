@@ -1,23 +1,23 @@
 /* global window */
-import React, { Component } from "react";
-import MapGL, { LinearInterpolator, FlyToInterpolator } from "react-map-gl";
-import { MapStylePicker } from "./controls";
-import Grid from "@material-ui/core/Grid";
-import FormControl from "@material-ui/core/FormControl";
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import DeckGL from "deck.gl";
-import { PathLayer } from "@deck.gl/layers";
-import DeckGLOverlay from "./components/DeckGLOverLay";
+import React, { Component } from 'react';
+import MapGL, { LinearInterpolator, FlyToInterpolator } from 'react-map-gl';
+import { MapStylePicker } from './controls';
+import Grid from '@material-ui/core/Grid';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
+import DeckGL from 'deck.gl';
+import { PathLayer } from '@deck.gl/layers';
+import DeckGLOverlay from './components/DeckGLOverLay';
 
 // Easing function
-import { easeCubic } from "d3-ease";
+import { easeCubic } from 'd3-ease';
 
 export default class App extends Component {
   state = {
-    style: "mapbox://styles/mapbox/dark-v9",
+    style: 'mapbox://styles/mapbox/dark-v9',
     viewport: {
-      width: "100%",
+      width: '100%',
       height: window.innerHeight,
       longitude: 7.6261,
       latitude: 51.9607,
@@ -25,17 +25,18 @@ export default class App extends Component {
       maxZoom: 16
     },
     recentTracks: [],
-    selectedTrack: ""
+    selectedTrack: '',
+    measurements: []
   };
 
   componentDidMount() {
-    window.addEventListener("resize", this._resize);
+    window.addEventListener('resize', this._resize);
     this._resize();
     this.fetchRecentTracks();
   }
 
   componentWillUnmount() {
-    window.removeEventListener("resize", this._resize);
+    window.removeEventListener('resize', this._resize);
   }
 
   onStyleChange = style => {
@@ -50,24 +51,27 @@ export default class App extends Component {
 
   _resize = () => {
     this._onViewportChange({
-      width: "100%",
+      width: '100%',
       height: window.innerHeight
     });
   };
 
   fetchRecentTracks = () => {
     let dataArr = [];
-    fetch("https://envirocar.org/auth-proxy/api/tracks/?limit=20", {
-      method: "GET",
-      headers: {
-        Authorization: "Basic QXNlbFBlaXJpczpJc2lwYXRoYW5hOQ=="
+    fetch(
+      'https://envirocar.org/api/stable/tracks?bbox=7.0,51.1,7.3,52.0&limit=20',
+      {
+        method: 'GET',
+        headers: {
+          Authorization: 'Basic QXNlbFBlaXJpczpJc2lwYXRoYW5hOQ=='
+        }
       }
-    })
+    )
       .then(res => {
         return res.json();
       })
       .then(resData => {
-        this.setState({ recentTracks: resData.tracks });
+        this.setState({ recentTracks: resData.tracks }, this.fetchMeasurements);
       })
       .catch(err => {
         console.log(err);
@@ -76,13 +80,13 @@ export default class App extends Component {
 
   fetchMeasurementsOfSelectedTrack = () => {
     fetch(
-      "https://envirocar.org/auth-proxy/api/tracks/" +
+      'https://envirocar.org/auth-proxy/api/tracks/' +
         this.state.selectedTrack +
-        "/measurements",
+        '/measurements',
       {
-        method: "GET",
+        method: 'GET',
         headers: {
-          Authorization: "Basic QXNlbFBlaXJpczpJc2lwYXRoYW5hOQ=="
+          Authorization: 'Basic QXNlbFBlaXJpczpJc2lwYXRoYW5hOQ=='
         }
       }
     )
@@ -103,7 +107,8 @@ export default class App extends Component {
           ...this.state.viewport,
           longitude: focusLongitude,
           latitude: focusLatitude,
-          zoom: 14,
+          zoom: 11,
+          pitch: 30,
           transitionDuration: 2500,
           transitionInterpolator: new FlyToInterpolator(),
           transitionEasing: easeCubic
@@ -116,49 +121,37 @@ export default class App extends Component {
           timestamps.push(100 * index + 2500);
         });
 
-        let layerData = [{ path: paths, name: "Track", color: [255, 0, 0] }];
-
-        // let layers = [
-        //   new TripsLayer({
-        //     id: "trips",
-        //     data: layerData,
-        //     getPath: d => d.path,
-        //     getTimestamps: d => d.timestamps,
-        //     getColor: d =>
-        //       d.vendor === 0 ? theme.trailColor0 : theme.trailColor1,
-        //     opacity: 0.3,
-        //     widthMinPixels: 2,
-        //     rounded: true,
-        //     trailLength: 180,
-        //     currentTime: 2700,
-        //     shadowEnabled: false
-        //   })
-        // ];
-
-        // const pathLayer = new PathLayer({
-        //   id: "path-layer",
-        //   layerData,
-        //   pickable: true,
-        //   widthScale: 20,
-        //   widthMinPixels: 2,
-        //   getPath: d => d.path,
-        //   getColor: d => colorToRGBArray(d.color),
-        //   getWidth: d => 5,
-        //   onHover: ({ object, x, y }) => {
-        //     const tooltip = object.name;
-        //     /* Update tooltip
-        //          http://deck.gl/#/documentation/developer-guide/adding-interactivity?section=example-display-a-tooltip-for-hovered-object
-        //       */
-        //   }
-        // });
-
-        // layers.push(pathLayer);
+        let layerData = [{ path: paths, name: 'Track', color: [255, 0, 0] }];
 
         this.setState({ viewport, layerData: layerData });
       })
       .catch(err => {
         console.log(err);
       });
+  };
+
+  fetchMeasurements = () => {
+    let recentTracks = this.state.recentTracks;
+    let measurements = [];
+
+    recentTracks.forEach(element => {
+      fetch(
+        `https://envirocar.org/api/stable/tracks/${element.id}/measurements`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: 'Basic QXNlbFBlaXJpczpJc2lwYXRoYW5hOQ=='
+          }
+        }
+      )
+        .then(res => {
+          return res.json();
+        })
+        .then(data => {
+          measurements.push(data);
+        });
+    });
+    this.setState({ measurements: measurements });
   };
 
   handleChange = event => {
@@ -187,27 +180,28 @@ export default class App extends Component {
               mapStyle={this.state.style}
               onViewportChange={viewport => this._onViewportChange(viewport)}
               mapboxApiAccessToken={
-                "pk.eyJ1IjoiYXVyYW9mZGl2aW5pdHkiLCJhIjoiY2s2bng4bGIzMTI4NTNscDZodGE4YzZvcyJ9.EUzx63KUHzjzzm1PJFfRPg"
+                'pk.eyJ1IjoiYXVyYW9mZGl2aW5pdHkiLCJhIjoiY2s2bng4bGIzMTI4NTNscDZodGE4YzZvcyJ9.EUzx63KUHzjzzm1PJFfRPg'
               }
             >
               <DeckGLOverlay
                 viewport={this.state.viewport}
                 layerData={this.state.layerData}
+                measurements={this.state.measurements}
               ></DeckGLOverlay>
             </MapGL>
           </Grid>
           <Grid item lg={3} sm={3} md={3}>
-            <div style={{ margin: "20px" }}>
-              <div style={{ fontFamily: "Montserrat", fontSize: "1.4" }}>
+            <div style={{ margin: '20px' }}>
+              <div style={{ fontFamily: 'Montserrat', fontSize: '1.4' }}>
                 The most recent 20 tracks are available in the follwoing
                 dropdown.
               </div>
-              <FormControl variant="outlined" style={{ width: "100%" }}>
+              <FormControl variant='outlined' style={{ width: '100%' }}>
                 <Select
                   onChange={this.handleChange}
-                  style={{ fontFamily: "Montserrat" }}
-                  labelId="demo-simple-select-outlined-label"
-                  id="demo-simple-select-outlined"
+                  style={{ fontFamily: 'Montserrat' }}
+                  labelId='demo-simple-select-outlined-label'
+                  id='demo-simple-select-outlined'
                   value={this.state.selectedTrack}
                 >
                   {this.state.recentTracks.map((current, index) => {
