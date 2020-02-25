@@ -1,12 +1,17 @@
 ### Description
 
 This is an example app created using react, deckGL, mapbox to visualize the data obtained using the envirocar API.
+Deployed at - https://jolly-bell-c94e87.netlify.com/
 
-The initial app is based on the starter code available [here](https://github.com/uber-common/vis-academy/tree/master/src/demos/building-a-geospatial-app/1-starting-with-map)
 
 ### Usage
 ```
 npm install
 npm start
 ```
+
+### Updates
+21/02/19 - Initial app is implemented. Fetches some 20 rows of tracks from envirocar API and displays those tracks on the map upon selection
+
+22/02/19 - Added query parameters to fetch required data
 
